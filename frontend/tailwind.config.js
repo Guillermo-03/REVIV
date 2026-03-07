@@ -8,6 +8,10 @@ export default {
         'brand-teal': '#52b788',
         'brand-blue': '#1d3557',
         'brand-sky': '#457b9d',
+        'brand-neon': '#0effbe',
+      },
+      fontFamily: {
+        'orbitron': ['Orbitron', 'monospace'],
       },
     },
   },
