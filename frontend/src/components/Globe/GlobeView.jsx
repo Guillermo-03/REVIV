@@ -64,11 +64,13 @@ export function GlobeView({ onReportClick, onEventClick }) {
     return { ...r, lat: coords.lat, lng: coords.lng }
   })
 
-  // Prepare event HTML elements
+  // Prepare event HTML elements + user location marker
   const eventsWithCoords = events.map((e) => {
     const coords = geoJSONToCoords(e.location)
     return { ...e, lat: coords.lat, lng: coords.lng }
   })
+  const userMarker = location ? [{ _isUserLocation: true, lat: location.lat, lng: location.lng }] : []
+  const htmlData = [...eventsWithCoords, ...userMarker]
 
   return (
     <div className="w-full h-full">
@@ -93,11 +95,23 @@ export function GlobeView({ onReportClick, onEventClick }) {
           if (onReportClick) onReportClick({ ...point, type: 'report' })
         }}
         // Event HTML markers
-        htmlElementsData={eventsWithCoords}
+        htmlElementsData={htmlData}
         htmlLat="lat"
         htmlLng="lng"
-        htmlAltitude={0.01}
+        htmlAltitude={0}
         htmlElement={(d) => {
+          if (d._isUserLocation) {
+            const el = document.createElement('div')
+            el.style.cssText = `
+              width: 14px; height: 14px;
+              border-radius: 50%;
+              background: #0FCA1E;
+              border: 2px solid white;
+              box-shadow: 0 0 0 4px rgba(0,255,0,0.3);
+              pointer-events: none;
+            `
+            return el
+          }
           const el = createEventMarkerEl(d)
           el.addEventListener('click', () => {
             if (onEventClick) onEventClick({ ...d, type: 'event' })
