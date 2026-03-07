@@ -235,3 +235,7 @@ backend/app/uploads/*
 
 # Mac
 .DS_Store
+
+#Extras
+*.ignore
+claude.md
