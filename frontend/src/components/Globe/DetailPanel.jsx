@@ -6,7 +6,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { getReport, upvoteReport } from '../../api/reports'
 import { Badge } from '../UI/Badge'
 import { Spinner } from '../UI/Spinner'
-import { formatSeverity, formatCategory, formatTimeAgo } from '../../utils/formatters'
+import { formatSeverity, formatCategory, formatTimeAgo, formatDateTime } from '../../utils/formatters'
 
 export function DetailPanel({ onCreateEvent }) {
   const { selectedMarker, panelOpen, closePanel } = useGlobeStore()
@@ -36,11 +36,21 @@ export function DetailPanel({ onCreateEvent }) {
         panelOpen ? 'translate-x-0' : 'translate-x-full'
       }`}
     >
-      <div className="flex items-center justify-between p-4 border-b border-brand-sky/20">
+      {/* Collapse arrow tab on the left edge */}
+      <button
+        onClick={closePanel}
+        className={`absolute -left-8 top-1/2 -translate-y-1/2 w-8 h-16 bg-brand-blue/95 border border-brand-sky/30 border-r-0 rounded-l-lg flex items-center justify-center text-gray-300 hover:text-white hover:bg-brand-sky/20 transition-colors ${panelOpen ? '' : 'hidden'}`}
+        aria-label="Close panel"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+
+      <div className="flex items-center p-4 border-b border-brand-sky/20">
         <h2 className="text-white font-semibold">
           {isReport ? 'Litter Report' : isEvent ? 'Cleanup Event' : 'Details'}
         </h2>
-        <button onClick={closePanel} className="text-gray-400 hover:text-white text-xl leading-none">&times;</button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -115,6 +125,12 @@ export function DetailPanel({ onCreateEvent }) {
             <h3 className="text-white font-semibold text-lg">{selectedMarker.name}</h3>
             <Badge label={selectedMarker.status} variant={selectedMarker.status} />
             <p className="text-gray-400 text-sm">{selectedMarker.location_label}</p>
+            {(selectedMarker.status === 'completed' || selectedMarker.status === 'resolved') && selectedMarker.completed_at && (
+              <p className="text-yellow-400 text-xs">
+                ⚠ This event will be removed from the map at{' '}
+                {formatDateTime(new Date(new Date(selectedMarker.completed_at).getTime() + 24 * 60 * 60 * 1000))}
+              </p>
+            )}
             <Link
               to={`/events/${selectedMarker.id}`}
               onClick={closePanel}

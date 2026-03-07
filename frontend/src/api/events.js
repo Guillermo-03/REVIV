@@ -13,7 +13,7 @@ export async function fetchEvents({ lat, lng, radius_km = 50, date_from, date_to
 }
 
 export async function createEvent(data) {
-  const res = await client.post('/events', data)
+  const res = await client.post('/events', null, { params: data })
   return res.data
 }
 

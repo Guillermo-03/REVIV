@@ -42,7 +42,7 @@ export default function HomePage() {
       <DetailPanel onCreateEvent={handleCreateEventFromReport} />
 
       {/* Floating action buttons */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+      <div className="fixed bottom-12 right-6 flex flex-col gap-3 z-40">
         <button
           onClick={() => setEventModalOpen(true)}
           className="bg-brand-teal hover:bg-brand-green text-white font-semibold px-4 py-2 rounded-full shadow-lg transition-colors text-sm"

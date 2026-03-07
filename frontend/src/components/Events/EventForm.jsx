@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -5,14 +6,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { createEvent } from '../../api/events'
 import { Spinner } from '../UI/Spinner'
+import { LocationPicker } from '../UI/LocationPicker'
 
 const schema = z.object({
   name: z.string().min(3, 'Name required'),
   description: z.string().optional(),
   what_to_bring: z.string().optional(),
-  location_label: z.string().min(2, 'Location label required'),
-  lat: z.coerce.number(),
-  lng: z.coerce.number(),
   date_time: z.string().min(1, 'Date & time required'),
   duration_minutes: z.coerce.number().min(15),
   max_volunteers: z.coerce.number().optional().or(z.literal('')),
@@ -21,12 +20,16 @@ const schema = z.object({
 
 export function EventForm({ defaultLat, defaultLng, defaultLocationLabel, linkedReportId, onSuccess }) {
   const queryClient = useQueryClient()
+  const [location, setLocation] = useState(
+    defaultLat && defaultLng
+      ? { lat: defaultLat, lng: defaultLng, label: defaultLocationLabel || '' }
+      : null,
+  )
+  const [locationError, setLocationError] = useState(false)
+
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      lat: defaultLat || '',
-      lng: defaultLng || '',
-      location_label: defaultLocationLabel || '',
       duration_minutes: 120,
       linked_report_id: linkedReportId || '',
     },
@@ -34,7 +37,12 @@ export function EventForm({ defaultLat, defaultLng, defaultLocationLabel, linked
 
   const { mutate, isPending } = useMutation({
     mutationFn: (data) => {
-      const payload = { ...data }
+      const payload = {
+        ...data,
+        lat: location.lat,
+        lng: location.lng,
+        location_label: location.label,
+      }
       if (!payload.max_volunteers) delete payload.max_volunteers
       if (!payload.linked_report_id) delete payload.linked_report_id
       return createEvent(payload)
@@ -47,11 +55,17 @@ export function EventForm({ defaultLat, defaultLng, defaultLocationLabel, linked
     onError: (err) => toast.error(err.response?.data?.detail || 'Failed to create event'),
   })
 
+  const onSubmit = (data) => {
+    if (!location) { setLocationError(true); return }
+    setLocationError(false)
+    mutate(data)
+  }
+
   const inputCls = 'w-full bg-brand-blue/60 border border-brand-sky/40 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-brand-teal text-sm'
   const labelCls = 'block text-sm font-medium text-gray-300 mb-1'
 
   return (
-    <form onSubmit={handleSubmit(mutate)} className="space-y-3">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
       <div>
         <label className={labelCls}>Event Name</label>
         <input {...register('name')} className={inputCls} placeholder="Community Cleanup at..." />
@@ -66,19 +80,12 @@ export function EventForm({ defaultLat, defaultLng, defaultLocationLabel, linked
         <input {...register('what_to_bring')} className={inputCls} placeholder="Gloves, bags, sunscreen..." />
       </div>
       <div>
-        <label className={labelCls}>Location Label</label>
-        <input {...register('location_label')} className={inputCls} placeholder="Meeting point description" />
-        {errors.location_label && <p className="text-red-400 text-xs mt-1">{errors.location_label.message}</p>}
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className={labelCls}>Latitude</label>
-          <input {...register('lat')} className={inputCls} placeholder="0.000" />
-        </div>
-        <div>
-          <label className={labelCls}>Longitude</label>
-          <input {...register('lng')} className={inputCls} placeholder="0.000" />
-        </div>
+        <label className={labelCls}>Location</label>
+        <LocationPicker
+          onChange={(loc) => { setLocation(loc); setLocationError(false) }}
+          defaultLabel={defaultLocationLabel || ''}
+        />
+        {locationError && <p className="text-red-400 text-xs mt-1">Please select a location first</p>}
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>

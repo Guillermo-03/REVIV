@@ -19,6 +19,7 @@ export function haversineDistance(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-export function globeAltitudeToRadiusKm(altitude) {
-  return Math.min(altitude * 1200, 5000)
+export function mapZoomToRadiusKm(zoom) {
+  // zoom 2 ≈ 5000km (globe), zoom 8 ≈ 78km (city), zoom 14 ≈ 1.2km (street)
+  return Math.min(Math.max(2, 40000 / Math.pow(2, zoom + 1)), 5000)
 }
