@@ -1,11 +1,11 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useGlobeStore } from '../../stores/globeStore'
 import { useAuthStore } from '../../stores/authStore'
 import { useGeoLocation } from '../../hooks/useGeoLocation'
-import { fetchReports } from '../../api/reports'
+import { fetchReports, fetchHeatmap } from '../../api/reports'
 import { fetchEvents } from '../../api/events'
 import { geoJSONToCoords, mapZoomToRadiusKm } from '../../utils/geo'
 
@@ -48,6 +48,7 @@ const EVENT_STATUS_COLORS = {
 
 export function GlobeView({ onReportClick, onEventClick }) {
   const containerRef = useRef(null)
+  const starsCanvasRef = useRef(null)
   const mapRef = useRef(null)
   const eventMarkersRef = useRef([])
   const userMarkerRef = useRef(null)
@@ -62,25 +63,123 @@ export function GlobeView({ onReportClick, onEventClick }) {
   const [viewState, setViewState] = useState({ lat: 20, lng: 0, zoom: 2 })
   const radiusKm = mapZoomToRadiusKm(viewState.zoom)
 
-  // Round coords to avoid re-fetching on tiny pans
-  const fetchLat = Math.round(viewState.lat * 5) / 5
-  const fetchLng = Math.round(viewState.lng * 5) / 5
-  const fetchRadius = Math.max(10, Math.round(radiusKm / 10) * 10)
+  // Round coords to a coarse grid to avoid re-fetching on tiny pans.
+  // Fetch 1.5× the visible radius as a buffer so edges don't go empty mid-pan.
+  const fetchLat    = Math.round(viewState.lat * 5) / 5
+  const fetchLng    = Math.round(viewState.lng * 5) / 5
+  const fetchRadius = Math.max(10, Math.round((radiusKm * 1.5) / 10) * 10)
 
   const { data: reports = [] } = useQuery({
     queryKey: ['reports', fetchLat, fetchLng, fetchRadius],
     queryFn: () => fetchReports({ lat: fetchLat, lng: fetchLng, radius_km: fetchRadius, status: 'active' }),
-    staleTime: 30000,
+    staleTime: 120000,
+    gcTime: 300000,
+    placeholderData: keepPreviousData,
   })
 
   const { data: events = [] } = useQuery({
     queryKey: ['events', fetchLat, fetchLng, fetchRadius],
     queryFn: () => fetchEvents({ lat: fetchLat, lng: fetchLng, radius_km: fetchRadius }),
-    staleTime: 30000,
+    staleTime: 120000,
+    gcTime: 300000,
+    placeholderData: keepPreviousData,
+  })
+
+  const { data: heatmapPoints = [] } = useQuery({
+    queryKey: ['heatmap', fetchLat, fetchLng, fetchRadius],
+    queryFn: () => fetchHeatmap({ lat: fetchLat, lng: fetchLng, radius_km: fetchRadius }),
+    staleTime: 120000,
+    gcTime: 300000,
+    placeholderData: keepPreviousData,
   })
 
   // Keep reports in a ref so click handlers always have fresh data
   useEffect(() => { reportsRef.current = reports }, [reports])
+
+  // ── Draw static starfield canvas ──────────────────────────────────────────
+  useEffect(() => {
+    const canvas = starsCanvasRef.current
+    if (!canvas) return
+
+    const draw = () => {
+      canvas.width  = canvas.offsetWidth
+      canvas.height = canvas.offsetHeight
+      const { width: w, height: h } = canvas
+      const ctx = canvas.getContext('2d')
+
+      // Deep space radial gradient background
+      const bg = ctx.createRadialGradient(w * 0.5, h * 0.4, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.75)
+      bg.addColorStop(0,   '#0d1b3e')
+      bg.addColorStop(0.4, '#060d20')
+      bg.addColorStop(1,   '#010308')
+      ctx.fillStyle = bg
+      ctx.fillRect(0, 0, w, h)
+
+      const rnd = () => Math.random()
+
+      // ── Tiny background stars (high count, very dim)
+      for (let i = 0; i < 320; i++) {
+        ctx.beginPath()
+        ctx.arc(rnd() * w, rnd() * h, rnd() * 0.6 + 0.1, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(210, 225, 255, ${rnd() * 0.35 + 0.1})`
+        ctx.fill()
+      }
+
+      // ── Medium stars
+      for (let i = 0; i < 100; i++) {
+        const hue = rnd() < 0.15 ? '200, 220, 255' : rnd() < 0.08 ? '255, 240, 200' : '255, 255, 255'
+        ctx.beginPath()
+        ctx.arc(rnd() * w, rnd() * h, rnd() * 1.0 + 0.4, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(${hue}, ${rnd() * 0.5 + 0.45})`
+        ctx.fill()
+      }
+
+      // ── Bright stars with soft glow halo
+      for (let i = 0; i < 18; i++) {
+        const x  = rnd() * w
+        const y  = rnd() * h
+        const r  = rnd() * 1.4 + 0.8
+        const isBlue   = rnd() < 0.3
+        const isYellow = !isBlue && rnd() < 0.2
+        const core  = isBlue ? '180, 210, 255' : isYellow ? '255, 240, 180' : '255, 255, 255'
+        const halo  = isBlue ? '140, 180, 255' : isYellow ? '255, 220, 120' : '200, 220, 255'
+
+        // Outer glow
+        const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 5)
+        glow.addColorStop(0,   `rgba(${halo}, 0.25)`)
+        glow.addColorStop(0.4, `rgba(${halo}, 0.08)`)
+        glow.addColorStop(1,   'rgba(0,0,0,0)')
+        ctx.beginPath()
+        ctx.arc(x, y, r * 5, 0, Math.PI * 2)
+        ctx.fillStyle = glow
+        ctx.fill()
+
+        // Bright core
+        ctx.beginPath()
+        ctx.arc(x, y, r, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(${core}, 0.95)`
+        ctx.fill()
+      }
+
+      // ── Faint nebula-like smudge (purely cosmetic, one radial blob)
+      const nx = w * (0.2 + rnd() * 0.6)
+      const ny = h * (0.1 + rnd() * 0.5)
+      const nebula = ctx.createRadialGradient(nx, ny, 0, nx, ny, w * 0.18)
+      nebula.addColorStop(0,   'rgba(60, 80, 160, 0.07)')
+      nebula.addColorStop(0.5, 'rgba(40, 60, 120, 0.03)')
+      nebula.addColorStop(1,   'rgba(0, 0, 0, 0)')
+      ctx.beginPath()
+      ctx.arc(nx, ny, w * 0.18, 0, Math.PI * 2)
+      ctx.fillStyle = nebula
+      ctx.fill()
+    }
+
+    draw()
+
+    const observer = new ResizeObserver(draw)
+    observer.observe(canvas)
+    return () => observer.disconnect()
+  }, [])
 
   // ── Initialize map ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -116,11 +215,11 @@ export function GlobeView({ onReportClick, onEventClick }) {
       // setFog removed in MapLibre GL JS v5 — guard for compatibility
       if (typeof map.setFog === 'function') {
         map.setFog({
-          color: 'rgba(20, 40, 70, 0.85)',
-          'high-color': 'rgba(30, 60, 120, 0.5)',
-          'horizon-blend': 0.03,
-          'space-color': 'rgb(4, 5, 16)',
-          'star-intensity': 0.6,
+          color: 'rgba(160, 200, 255, 0.8)',    // bright blue-white atmosphere limb
+          'high-color': 'rgba(8, 16, 60, 0.95)', // deep indigo fading to black
+          'horizon-blend': 0.02,                 // thin sharp atmosphere edge
+          'space-color': 'rgb(2, 4, 14)',        // near-black deep space
+          'star-intensity': 1.0,                 // maximum MapLibre stars
         })
       }
 
@@ -152,6 +251,38 @@ export function GlobeView({ onReportClick, onEventClick }) {
           },
         },
         firstSymbolId,
+      )
+
+      // ── Pollution heatmap ──────────────────────────────────────────────
+      map.addSource('heatmap-data', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      })
+      map.addLayer(
+        {
+          id: 'pollution-heatmap',
+          type: 'heatmap',
+          source: 'heatmap-data',
+          paint: {
+            'heatmap-weight': ['interpolate', ['linear'], ['get', 'weight'], 0, 0, 3, 0.5, 6, 1],
+            'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 2, 0.4, 8, 1.2, 12, 2.0],
+            'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 2, 20, 8, 35, 12, 60],
+            'heatmap-color': [
+              'interpolate', ['linear'], ['heatmap-density'],
+              0,   'rgba(0,0,0,0)',
+              0.1, 'rgba(0,230,200,0.2)',
+              0.3, 'rgba(64,224,208,0.6)',
+              0.5, 'rgba(249,199,79,0.75)',
+              0.7, 'rgba(248,150,30,0.85)',
+              1.0, 'rgba(249,65,68,0.95)',
+            ],
+            'heatmap-opacity': [
+              'interpolate', ['linear'], ['zoom'],
+              7, 0.85, 11, 0.55, 13, 0.30, 15, 0,
+            ],
+          },
+        },
+        'cluster-halo',
       )
 
       // ── Reports GeoJSON source (with clustering) ───────────────────────
@@ -354,6 +485,20 @@ export function GlobeView({ onReportClick, onEventClick }) {
     source.setData({ type: 'FeatureCollection', features })
   }, [reports, mapReady])
 
+  // ── Sync heatmap data ─────────────────────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    const source = map.getSource('heatmap-data')
+    if (!source) return
+    const features = heatmapPoints.map((p) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+      properties: { weight: p.weight },
+    }))
+    source.setData({ type: 'FeatureCollection', features })
+  }, [heatmapPoints, mapReady])
+
   // ── Sync event markers ─────────────────────────────────────────────────
   useEffect(() => {
     const map = mapRef.current
@@ -395,5 +540,10 @@ export function GlobeView({ onReportClick, onEventClick }) {
     })
   }, [events, mapReady, onEventClick])
 
-  return <div ref={containerRef} className="w-full h-full" />
+  return (
+    <div className="w-full h-full relative overflow-hidden" style={{ background: '#010308' }}>
+      <canvas ref={starsCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }} />
+      <div ref={containerRef} className="absolute inset-0" style={{ zIndex: 1 }} />
+    </div>
+  )
 }

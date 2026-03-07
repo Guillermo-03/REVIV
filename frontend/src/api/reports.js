@@ -27,3 +27,12 @@ export async function upvoteReport(id) {
   const res = await client.patch(`/reports/${id}/upvote`)
   return res.data
 }
+
+export async function fetchHeatmap({ lat, lng, radius_km = 100 } = {}) {
+  const params = {}
+  if (lat != null) params.lat = lat
+  if (lng != null) params.lng = lng
+  if (radius_km != null) params.radius_km = radius_km
+  const res = await client.get('/reports/heatmap', { params })
+  return res.data
+}

@@ -85,7 +85,7 @@ async def get_reports_near(
     if status:
         query["status"] = status
 
-    reports = await Report.find(query).limit(200).to_list()
+    reports = await Report.find(query).limit(1000).to_list()
     return [report_to_response(r) for r in reports]
 
 
@@ -111,6 +111,34 @@ async def upvote_report(report_id: str, user: User) -> ReportResponse:
 
     await report.save()
     return report_to_response(report)
+
+
+async def get_heatmap_points(
+    lat: float,
+    lng: float,
+    radius_km: float = 100,
+) -> list[dict]:
+    query: dict = {
+        "location": {
+            "$near": {
+                "$geometry": {"type": "Point", "coordinates": [lng, lat]},
+                "$maxDistance": int(radius_km * 1000),
+            }
+        },
+        "status": "active",
+    }
+    reports = await Report.find(query).limit(500).to_list()
+    now = datetime.utcnow()
+    points = []
+    for r in reports:
+        coords = r.location.get("coordinates", [0, 0])
+        days_old = (now - r.created_at).total_seconds() / 86400
+        recency_factor = max(0.2, 1.0 - days_old / 30)
+        severity_score = {"low": 1.0, "medium": 2.0, "high": 3.0}.get(r.severity, 1.0)
+        upvote_boost = min(2.0, 1.0 + r.upvote_count / 10)
+        weight = severity_score * recency_factor * upvote_boost
+        points.append({"lng": coords[0], "lat": coords[1], "weight": round(weight, 4)})
+    return points
 
 
 async def resolve_report(report_id: str, user: User) -> ReportResponse:
