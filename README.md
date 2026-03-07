@@ -292,5 +292,5 @@ The POC is considered successful if:
 ---
 
 ## Summary
-
 REVIV turns environmental concern into environmental action. By making the problem visible on a 3D globe and lowering the barrier to organizing, the app transforms passive awareness into active community cleanup. The POC focuses on proving this loop is compelling, intuitive, and worth scaling.
+
