@@ -6,6 +6,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { getReport, upvoteReport } from '../../api/reports'
 import { Badge } from '../UI/Badge'
 import { Spinner } from '../UI/Spinner'
+import { ProgressiveImage } from '../UI/ProgressiveImage'
 import { formatSeverity, formatCategory, formatTimeAgo, formatDateTime } from '../../utils/formatters'
 
 export function DetailPanel({ onCreateEvent }) {
@@ -77,18 +78,23 @@ export function DetailPanel({ onCreateEvent }) {
               <p className="text-gray-200 text-sm leading-relaxed">{report.description}</p>
             )}
 
-            {report.photo_urls?.length > 0 && (
-              <div className="grid grid-cols-2 gap-2">
-                {report.photo_urls.map((url, i) => (
-                  <img
-                    key={i}
-                    src={url}
-                    alt="Report photo"
-                    className="w-full h-24 object-cover rounded-lg"
-                  />
-                ))}
-              </div>
-            )}
+            {(() => {
+              const viewable = (report.photo_urls ?? []).filter((url) =>
+                /\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(url)
+              )
+              if (viewable.length === 0) return (
+                <div className="flex items-center justify-center h-20 rounded-lg bg-white/5 border border-white/10">
+                  <span className="text-xs text-gray-500">No photo attached</span>
+                </div>
+              )
+              return (
+                <div className="grid grid-cols-2 gap-2">
+                  {viewable.map((url, i) => (
+                    <ProgressiveImage key={i} src={url} alt={`Report photo ${i + 1}`} />
+                  ))}
+                </div>
+              )
+            })()}
 
             {report.submitted_by && (
               <p className="text-gray-400 text-xs">

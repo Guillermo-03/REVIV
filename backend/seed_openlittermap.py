@@ -120,21 +120,23 @@ def validated_lnglat(lat_val, lng_val):
     return None           # genuinely out of range on both axes
 
 
+_RENDERABLE = (".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif")
+
 def build_photo_url(filename: str) -> str | None:
     """
     Return a usable photo URL from an OLM filename field, or None to skip.
-    Handles three cases:
-      - Already a full URL  → use as-is
-      - Placeholder asset   → skip
-      - Relative S3 path    → prepend OLM_PHOTO_BASE
+    Skips: placeholder assets, HEIC/HEIF and other non-browser-renderable formats.
     """
     if not filename:
         return None
-    if "/assets/" in filename:          # placeholder verified-badge image
+    if "/assets/" in filename:
         return None
-    if filename.startswith("http"):     # already a full URL
-        return filename
-    return f"{OLM_PHOTO_BASE}/{filename.lstrip('/')}"
+    url = filename if filename.startswith("http") else f"{OLM_PHOTO_BASE}/{filename.lstrip('/')}"
+    # Drop formats browsers cannot natively render
+    lower = url.split("?")[0].lower()
+    if not any(lower.endswith(ext) for ext in _RENDERABLE):
+        return None
+    return url
 
 # ── OLM fetch ─────────────────────────────────────────────────────────────────
 
