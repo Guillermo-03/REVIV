@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { createEvent } from '../../api/events'
+import { useAuthStore } from '../../stores/authStore'
 import { Spinner } from '../UI/Spinner'
 import { LocationPicker } from '../UI/LocationPicker'
 
@@ -20,6 +21,7 @@ const schema = z.object({
 
 export function EventForm({ defaultLat, defaultLng, defaultLocationLabel, linkedReportId, onSuccess }) {
   const queryClient = useQueryClient()
+  const user = useAuthStore((s) => s.user)
   const [location, setLocation] = useState(
     defaultLat && defaultLng
       ? { lat: defaultLat, lng: defaultLng, label: defaultLocationLabel || '' }
@@ -49,6 +51,8 @@ export function EventForm({ defaultLat, defaultLng, defaultLocationLabel, linked
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] })
+      queryClient.invalidateQueries({ queryKey: ['events-all'] })
+      queryClient.invalidateQueries({ queryKey: ['user-events', user?.id] })
       toast.success('Event created!')
       onSuccess?.()
     },

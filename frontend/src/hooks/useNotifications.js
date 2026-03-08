@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from '../api/notifications'
 
@@ -8,9 +9,15 @@ export function useNotifications() {
     queryKey: ['notifications'],
     queryFn: fetchNotifications,
     refetchInterval: 60000,
+    // Pause polling when the browser tab is not visible
+    refetchIntervalInBackground: false,
   })
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length
+  // Memoized so it doesn't recompute on every render
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.is_read).length,
+    [notifications]
+  )
 
   const markRead = useMutation({
     mutationFn: markNotificationRead,

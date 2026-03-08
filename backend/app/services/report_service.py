@@ -92,7 +92,7 @@ async def get_reports_near(
     if status:
         query["status"] = status
 
-    reports = await Report.find(query).limit(1000).to_list()
+    reports = await Report.find(query).limit(200).to_list()
     return [report_to_response(r) for r in reports]
 
 
@@ -135,11 +135,12 @@ async def get_heatmap_points(
         "status": "active",
     }
     reports = await Report.find(query).limit(500).to_list()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     points = []
     for r in reports:
         coords = r.location.get("coordinates", [0, 0])
-        days_old = (now - r.created_at).total_seconds() / 86400
+        created_at = r.created_at if r.created_at.tzinfo else r.created_at.replace(tzinfo=timezone.utc)
+        days_old = (now - created_at).total_seconds() / 86400
         recency_factor = max(0.2, 1.0 - days_old / 30)
         severity_score = {"low": 1.0, "medium": 2.0, "high": 3.0}.get(r.severity, 1.0)
         upvote_boost = min(2.0, 1.0 + r.upvote_count / 10)

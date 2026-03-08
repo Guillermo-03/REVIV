@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { createReport } from '../../api/reports'
+import { useAuthStore } from '../../stores/authStore'
 import { Spinner } from '../UI/Spinner'
 import { LocationPicker } from '../UI/LocationPicker'
 
@@ -17,6 +18,7 @@ const schema = z.object({
 
 export function ReportForm({ defaultLat, defaultLng, defaultLocationLabel, onSuccess }) {
   const queryClient = useQueryClient()
+  const user = useAuthStore((s) => s.user)
   const [location, setLocation] = useState(
     defaultLat && defaultLng
       ? { lat: defaultLat, lng: defaultLng, label: defaultLocationLabel || '' }
@@ -43,6 +45,8 @@ export function ReportForm({ defaultLat, defaultLng, defaultLocationLabel, onSuc
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reports'] })
+      queryClient.invalidateQueries({ queryKey: ['user-reports', user?.id] })
+      queryClient.invalidateQueries({ queryKey: ['user', user?.id] })
       toast.success('Report submitted!')
       onSuccess?.()
     },

@@ -1,3 +1,5 @@
+import asyncio
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -23,8 +25,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 app.include_router(auth.router, prefix="/api")
@@ -39,21 +41,36 @@ async def health():
     return {"status": "ok"}
 
 
+_stats_cache: dict = {}
+_STATS_TTL = 60  # seconds
+
+
 @app.get("/api/stats")
 async def stats():
+    now = time.monotonic()
+    if _stats_cache.get("ts", 0) + _STATS_TTL > now:
+        return _stats_cache["data"]
+
     from app.models.report import Report
     from app.models.event import Event
     from app.models.user import User
-    total_reports = await Report.count()
-    resolved_reports = await Report.find(Report.status == "resolved").count()
-    total_events = await Event.count()
-    total_volunteers = await User.count()
-    return {
+
+    total_reports, resolved_reports, total_events, total_volunteers = await asyncio.gather(
+        Report.count(),
+        Report.find(Report.status == "resolved").count(),
+        Event.count(),
+        User.count(),
+    )
+
+    data = {
         "total_reports": total_reports,
         "resolved_reports": resolved_reports,
         "total_events": total_events,
         "total_volunteers": total_volunteers,
     }
+    _stats_cache["data"] = data
+    _stats_cache["ts"] = now
+    return data
 
 
 # Mount AFTER routers

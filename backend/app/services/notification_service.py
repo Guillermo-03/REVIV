@@ -67,10 +67,15 @@ async def notify_nearby_users(
         }
     ).limit(100).to_list()
 
-    for u in nearby_users:
-        await create_notification(
+    if not nearby_users:
+        return
+    notifications = [
+        Notification(
             user_id=u.id,
             type="new_nearby_event",
             message=message,
             related_event_id=event_id,
         )
+        for u in nearby_users
+    ]
+    await Notification.insert_many(notifications)

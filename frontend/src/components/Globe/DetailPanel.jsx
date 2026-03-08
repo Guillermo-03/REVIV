@@ -21,7 +21,7 @@ export function DetailPanel({ onCreateEvent }) {
   const isEvent = selectedMarker?.type === 'event'
 
   // ── Report data ──────────────────────────────────────────────────
-  const { data: report, isLoading: reportLoading } = useQuery({
+  const { data: report, isLoading: reportLoading, isError: reportError } = useQuery({
     queryKey: ['report', selectedMarker?.id],
     queryFn: () => getReport(selectedMarker.id),
     enabled: isReport && !!selectedMarker?.id,
@@ -36,7 +36,7 @@ export function DetailPanel({ onCreateEvent }) {
   const hasUpvoted = report?.upvotes?.includes(user?.id)
 
   // ── Event data ───────────────────────────────────────────────────
-  const { data: event, isLoading: eventLoading } = useQuery({
+  const { data: event, isLoading: eventLoading, isError: eventError } = useQuery({
     queryKey: ['event', selectedMarker?.id],
     queryFn: () => getEvent(selectedMarker.id),
     enabled: isEvent && !!selectedMarker?.id,
@@ -69,8 +69,7 @@ export function DetailPanel({ onCreateEvent }) {
 
   return (
     <div
-      style={{ fontFamily: HELVETICA }}
-      style={{ zIndex: 9999 }}
+      style={{ fontFamily: HELVETICA, zIndex: 9999 }}
       className={`fixed top-0 right-0 h-full w-80 md:w-96 bg-[#111111]/97 backdrop-blur-md border-l border-white/10 transform transition-transform duration-300 flex flex-col ${
         panelOpen ? 'translate-x-0' : 'translate-x-full'
       }`}
@@ -99,7 +98,14 @@ export function DetailPanel({ onCreateEvent }) {
              Use selectedMarker directly — it already has the full report object
              (both map markers and sidebar rows spread the complete API response).
              The getReport fetch only adds submitter info on top.              */}
-        {isReport && !selectedMarker?.category && (
+        {isReport && reportError && (
+          <div className="flex flex-col items-center justify-center mt-12 gap-2 text-center px-4">
+            <p className="text-red-400 text-sm font-medium">Failed to load report</p>
+            <p className="text-gray-600 text-xs">Please close and try again</p>
+          </div>
+        )}
+
+        {isReport && !reportError && !selectedMarker?.category && (
           <div className="flex justify-center mt-8"><Spinner /></div>
         )}
 
@@ -176,7 +182,14 @@ export function DetailPanel({ onCreateEvent }) {
         })()}
 
         {/* ── Event view ── */}
-        {eventLoading && isEvent && <div className="flex justify-center mt-8"><Spinner /></div>}
+        {isEvent && eventError && (
+          <div className="flex flex-col items-center justify-center mt-12 gap-2 text-center px-4">
+            <p className="text-red-400 text-sm font-medium">Failed to load event</p>
+            <p className="text-gray-600 text-xs">Please close and try again</p>
+          </div>
+        )}
+
+        {eventLoading && isEvent && !eventError && <div className="flex justify-center mt-8"><Spinner /></div>}
 
         {isEvent && event && (
           <div className="space-y-4">
