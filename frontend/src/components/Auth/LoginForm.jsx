@@ -13,7 +13,8 @@ const HELVETICA = "'Helvetica Neue', Helvetica, Arial, sans-serif"
 
 export function LoginForm() {
   const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(schema) })
-  const { mutate, isPending } = useLogin()
+  const { mutate, isPending, error } = useLogin()
+  const serverError = error?.response?.data?.detail || (error ? 'Login failed. Please try again.' : null)
 
   return (
     <form onSubmit={handleSubmit(mutate)} className="space-y-6">
@@ -58,6 +59,12 @@ export function LoginForm() {
           </p>
         )}
       </div>
+
+      {serverError && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600" style={{ fontFamily: HELVETICA }}>
+          {serverError}
+        </div>
+      )}
 
       <button
         type="submit"

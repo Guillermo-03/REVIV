@@ -20,7 +20,6 @@ export default function LoginPage() {
       style={{ background: 'radial-gradient(ellipse at center, #2d2d2d 0%, #111111 100%)', minHeight: '100vh' }}
       className="relative"
     >
-      {/* Ambient glow layer */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.15),transparent_60%)] pointer-events-none" />
 
       {!splashDone && <SplashScreen onComplete={handleSplashComplete} />}
@@ -46,7 +45,7 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* Card — 20px below logo */}
+        {/* Card */}
         <div className="w-full max-w-sm bg-white/95 backdrop-blur-md shadow-2xl border border-white/20 rounded-2xl p-10" style={{ marginTop: '20px' }}>
           <h2
             className="text-center text-xl font-bold mb-6 text-gray-900"

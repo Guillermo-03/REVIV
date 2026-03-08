@@ -9,6 +9,8 @@ import { Spinner } from '../components/UI/Spinner'
 import { EventCard } from '../components/Events/EventCard'
 import { ReportCard } from '../components/Reports/ReportCard'
 
+const HELVETICA = "'Helvetica Neue', Helvetica, Arial, sans-serif"
+
 export default function ProfilePage() {
   const { id } = useParams()
   const { user: currentUser, setUser } = useAuthStore()
@@ -50,7 +52,10 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-brand-blue flex items-center justify-center">
+      <div
+        style={{ background: 'radial-gradient(ellipse at center, #2d2d2d 0%, #111111 100%)', minHeight: '100vh' }}
+        className="flex items-center justify-center"
+      >
         <Spinner size="lg" />
       </div>
     )
@@ -61,13 +66,18 @@ export default function ProfilePage() {
   const initials = (p?.display_name || 'U').slice(0, 2).toUpperCase()
 
   return (
-    <div className="min-h-screen bg-brand-blue">
+    <div
+      style={{ background: 'radial-gradient(ellipse at center, #2d2d2d 0%, #111111 100%)', minHeight: '100vh' }}
+      className="relative"
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.15),transparent_60%)] pointer-events-none" />
       <Nav />
-      <div className="pt-16 max-w-2xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="bg-brand-blue/60 border border-brand-sky/30 rounded-2xl p-6 mb-4">
+
+      <div className="relative pt-16 max-w-2xl mx-auto px-4 py-8" style={{ fontFamily: HELVETICA }}>
+        {/* Header card */}
+        <div className="bg-white/95 backdrop-blur-md shadow-xl border border-white/20 rounded-2xl p-6 mb-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-brand-teal flex items-center justify-center text-white text-2xl font-bold">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-b from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
               {initials}
             </div>
             <div className="flex-1">
@@ -76,44 +86,47 @@ export default function ProfilePage() {
                   <input
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="bg-brand-blue/60 border border-brand-sky/40 rounded-lg px-3 py-1 text-white text-sm flex-1"
+                    className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-gray-900 text-sm flex-1 focus:ring-2 focus:ring-emerald-400 focus:border-transparent outline-none"
+                    style={{ fontFamily: HELVETICA }}
                   />
                   <button
                     onClick={() => updateMut.mutate({ display_name: displayName })}
-                    className="bg-brand-teal text-white px-3 py-1 rounded-lg text-sm"
+                    className="bg-gradient-to-b from-emerald-400 to-emerald-500 text-white px-4 py-1.5 rounded-lg text-sm font-semibold"
                   >
                     Save
                   </button>
-                  <button onClick={() => setEditing(false)} className="text-gray-400 text-sm px-2">
+                  <button onClick={() => setEditing(false)} className="text-gray-400 hover:text-gray-600 text-sm px-2">
                     Cancel
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <h1 className="text-white font-bold text-xl">{p?.display_name}</h1>
+                  <h1 className="text-gray-900 font-bold text-xl">{p?.display_name}</h1>
                   {isOwnProfile && (
                     <button
                       onClick={() => { setDisplayName(p?.display_name || ''); setEditing(true) }}
-                      className="text-gray-400 hover:text-brand-teal text-xs"
+                      className="text-gray-400 hover:text-emerald-500 text-xs transition-colors"
                     >
                       Edit
                     </button>
                   )}
                 </div>
               )}
-              <p className="text-gray-400 text-sm">{p?.email}</p>
+              <p className="text-gray-500 text-sm mt-0.5">{p?.email}</p>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-4 bg-brand-blue/40 border border-brand-sky/20 rounded-xl p-1">
+        <div className="flex gap-1 mb-4 bg-white/10 border border-white/10 rounded-xl p-1">
           {['stats', 'events', 'reports'].map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 py-1.5 text-sm font-medium rounded-lg capitalize transition-colors ${
-                tab === t ? 'bg-brand-teal text-white' : 'text-gray-400 hover:text-white'
+              className={`flex-1 py-1.5 text-sm font-semibold rounded-lg capitalize transition-colors ${
+                tab === t
+                  ? 'bg-white/95 text-emerald-600 shadow-sm'
+                  : 'text-gray-300 hover:text-white'
               }`}
             >
               {t}
@@ -130,9 +143,9 @@ export default function ProfilePage() {
               { label: 'Events Organized', value: stats.events_organized ?? 0 },
               { label: 'Volunteer Hours', value: `${((stats.total_volunteer_hours ?? 0) / 60).toFixed(1)}h` },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-brand-blue/60 border border-brand-sky/20 rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-brand-teal">{value}</p>
-                <p className="text-gray-400 text-xs mt-1">{label}</p>
+              <div key={label} className="bg-white/95 backdrop-blur-md border border-white/20 rounded-xl p-4 text-center shadow-md">
+                <p className="text-2xl font-bold text-emerald-500">{value}</p>
+                <p className="text-gray-500 text-xs mt-1">{label}</p>
               </div>
             ))}
           </div>
