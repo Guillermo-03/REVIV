@@ -13,6 +13,7 @@ const schema = z.object({
   severity: z.enum(['low', 'medium', 'high']),
   category: z.enum(['roadside', 'park', 'waterway', 'construction', 'illegal_dump']),
   description: z.string().optional(),
+  photos: z.any().optional(),
 })
 
 export function ReportForm({ defaultLat, defaultLng, defaultLocationLabel, onSuccess }) {
@@ -36,7 +37,7 @@ export function ReportForm({ defaultLat, defaultLng, defaultLocationLabel, onSuc
       fd.append('lat', location.lat)
       fd.append('lng', location.lng)
       fd.append('location_label', location.label)
-      Object.entries(data).forEach(([k, v]) => { if (v !== undefined && v !== '') fd.append(k, v) })
+      Object.entries(data).forEach(([k, v]) => { if (k !== 'photos' && v !== undefined && v !== '') fd.append(k, v) })
       if (data.photos) {
         Array.from(data.photos).forEach((f) => fd.append('photos', f))
       }
@@ -49,7 +50,13 @@ export function ReportForm({ defaultLat, defaultLng, defaultLocationLabel, onSuc
       toast.success('Report submitted!')
       onSuccess?.()
     },
-    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to submit report'),
+    onError: (err) => {
+      const detail = err.response?.data?.detail
+      const message = Array.isArray(detail)
+        ? detail.map((d) => d.msg).join(', ')
+        : detail || 'Failed to submit report'
+      toast.error(message)
+    },
   })
 
   const onSubmit = (data) => {

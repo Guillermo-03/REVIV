@@ -7,6 +7,7 @@ from beanie import PydanticObjectId
 from app.models.report import Report
 from app.models.user import User
 from app.core.storage import save_file
+from app.core.classifier import classify_image
 from app.schemas.report import ReportResponse, ReportSubmitterResponse
 
 
@@ -35,11 +36,17 @@ async def create_report(
     lat: float,
     lng: float,
     location_label: Optional[str],
-    severity: str,
     category: str,
     description: Optional[str],
     photos: List[UploadFile],
 ) -> ReportResponse:
+    # Classify severity from the first photo before saving (reading exhausts the stream)
+    severity = "low"
+    if photos and photos[0].filename:
+        image_bytes = await photos[0].read()
+        await photos[0].seek(0)
+        severity = classify_image(image_bytes)
+
     photo_urls = []
     for photo in photos:
         if photo.filename:

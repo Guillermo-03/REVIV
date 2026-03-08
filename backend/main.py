@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
+from app.core.classifier import load_classifier
 from app.db.database import init_db
 from app.api.routes import auth, users, reports, events, notifications
 
@@ -14,6 +15,7 @@ from app.api.routes import auth, users, reports, events, notifications
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    load_classifier()
     yield
 
 
