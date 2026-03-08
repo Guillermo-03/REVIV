@@ -23,6 +23,10 @@ class Notification(Document):
     class Settings:
         name = "notifications"
         indexes = [
-            pymongo.IndexModel([("user_id", pymongo.ASCENDING)]),
-            pymongo.IndexModel([("is_read", pymongo.ASCENDING)]),
+            # Compound index covers "get notifications for user" and
+            # "get unread notifications for user" in a single index scan
+            pymongo.IndexModel(
+                [("user_id", pymongo.ASCENDING), ("is_read", pymongo.ASCENDING)]
+            ),
+            pymongo.IndexModel([("created_at", pymongo.DESCENDING)]),
         ]

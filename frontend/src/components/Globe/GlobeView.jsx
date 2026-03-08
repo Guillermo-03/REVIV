@@ -11,6 +11,16 @@ import { geoJSONToCoords, mapZoomToRadiusKm } from '../../utils/geo'
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
 
+function escapeHtml(str) {
+  if (str == null) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 class FastZoomControl {
   onAdd(map) {
     this._map = map
@@ -59,9 +69,9 @@ function formatDT(dt) {
 
 function buildReportPopupHTML(report) {
   const sevColor = SEVERITY_COLORS[report.severity] || '#f9c74f'
-  const cat = formatCat(report.category)
+  const cat = escapeHtml(formatCat(report.category))
   const desc = report.description
-    ? `<p class="reviv-popup-desc">${report.description}</p>`
+    ? `<p class="reviv-popup-desc">${escapeHtml(report.description)}</p>`
     : ''
   const viewable = (report.photo_urls ?? []).filter((url) =>
     url && (url.startsWith('data:image/') || /\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(url))
@@ -69,7 +79,7 @@ function buildReportPopupHTML(report) {
   const photos = viewable.length > 0
     ? `<div class="reviv-popup-photos">
         ${viewable.slice(0, 2).map((url) =>
-          `<img src="${url}" alt="Report photo" class="reviv-popup-photo" onerror="this.style.display='none'" />`
+          `<img src="${escapeHtml(url)}" alt="Report photo" class="reviv-popup-photo" onerror="this.style.display='none'" />`
         ).join('')}
        </div>`
     : ''
@@ -77,10 +87,10 @@ function buildReportPopupHTML(report) {
     <div class="reviv-popup-inner">
       ${photos}
       <div class="reviv-popup-badges">
-        <span class="reviv-badge reviv-badge-${report.severity}" style="color:${sevColor}">${report.severity || 'low'}</span>
+        <span class="reviv-badge reviv-badge-${escapeHtml(report.severity)}" style="color:${sevColor}">${escapeHtml(report.severity) || 'low'}</span>
         ${cat ? `<span class="reviv-badge reviv-badge-category">${cat}</span>` : ''}
       </div>
-      ${report.location_label ? `<p class="reviv-popup-location">${report.location_label}</p>` : ''}
+      ${report.location_label ? `<p class="reviv-popup-location">${escapeHtml(report.location_label)}</p>` : ''}
       ${desc}
       <div class="reviv-popup-footer">
         <span class="reviv-popup-upvotes">▲ ${report.upvote_count ?? 0} upvotes</span>
@@ -91,19 +101,19 @@ function buildReportPopupHTML(report) {
 
 function buildEventPopupHTML(event) {
   const color = EVENT_STATUS_COLORS[event.status] || '#52b788'
-  const statusLabel = (event.status || '').replace(/_/g, ' ')
+  const statusLabel = escapeHtml((event.status || '').replace(/_/g, ' '))
   const desc = event.description
-    ? `<p class="reviv-popup-desc">${event.description}</p>`
+    ? `<p class="reviv-popup-desc">${escapeHtml(event.description)}</p>`
     : ''
-  const dt = formatDT(event.date_time)
+  const dt = escapeHtml(formatDT(event.date_time))
   const attendees = event.attendee_count ?? event.attendee_ids?.length ?? 0
   return `
     <div class="reviv-popup-inner">
       <div class="reviv-popup-badges">
-        <span class="reviv-badge reviv-badge-${event.status}" style="color:${color}">${statusLabel}</span>
+        <span class="reviv-badge reviv-badge-${escapeHtml(event.status)}" style="color:${color}">${statusLabel}</span>
       </div>
-      <p class="reviv-popup-title">${event.name || 'Cleanup Event'}</p>
-      ${event.location_label ? `<p class="reviv-popup-location">${event.location_label}</p>` : ''}
+      <p class="reviv-popup-title">${escapeHtml(event.name) || 'Cleanup Event'}</p>
+      ${event.location_label ? `<p class="reviv-popup-location">${escapeHtml(event.location_label)}</p>` : ''}
       ${dt ? `<p class="reviv-popup-meta">${dt}</p>` : ''}
       ${desc}
       <div class="reviv-popup-footer">

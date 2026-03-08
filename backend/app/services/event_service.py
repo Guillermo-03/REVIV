@@ -1,5 +1,6 @@
+import asyncio
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from fastapi import HTTPException, UploadFile, BackgroundTasks
 from beanie import PydanticObjectId
@@ -43,7 +44,7 @@ async def get_all_visible_events(limit: int = 200) -> List[EventResponse]:
     - completed / resolved       → included only if completed within the last 24 h
       (mirrors the 24-h fade-out window enforced on the globe)
     """
-    cutoff = datetime.utcnow() - __import__('datetime').timedelta(hours=24)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     query = {
         "$or": [
             {"status": {"$in": ["open", "in_progress", "full"]}},
@@ -139,11 +140,10 @@ async def get_event_by_id(event_id: str) -> EventResponse:
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     organizer = await User.get(event.organizer_id)
-    attendees = []
-    for aid in event.attendee_ids:
-        u = await User.get(aid)
-        if u:
-            attendees.append(u)
+    attendees = (
+        await User.find({"_id": {"$in": event.attendee_ids}}).to_list()
+        if event.attendee_ids else []
+    )
     return event_to_response(event, organizer, attendees)
 
 
@@ -293,21 +293,25 @@ async def confirm_event(event_id: str, user: User, background_tasks: BackgroundT
             if report:
                 report.status = "resolved"
                 report.resolved_at = datetime.now(timezone.utc)
-                await report.save()
-                # Increment report submitter stat
-                await User.find_one(User.id == report.submitted_by).update(
-                    {"$inc": {"stats.reports_resolved": 1}}
+                await asyncio.gather(
+                    report.save(),
+                    User.find_one(User.id == report.submitted_by).update(
+                        {"$inc": {"stats.reports_resolved": 1}}
+                    ),
                 )
 
-        # Increment stats for all attendees
-        hours = event.duration_minutes
-        for aid in event.attendee_ids:
-            await User.find_one(User.id == aid).update(
-                {"$inc": {"stats.events_attended": 1, "stats.total_volunteer_hours": hours}}
-            )
-        # Increment organizer stat
-        await User.find_one(User.id == event.organizer_id).update(
-            {"$inc": {"stats.events_organized": 1}}
+        # Batch-update all attendee stats in one query (updateMany)
+        # total_volunteer_hours stores minutes; frontend divides by 60 for display
+        await asyncio.gather(
+            User.find({"_id": {"$in": event.attendee_ids}}).update(
+                {"$inc": {
+                    "stats.events_attended": 1,
+                    "stats.total_volunteer_hours": event.duration_minutes,
+                }}
+            ),
+            User.find_one(User.id == event.organizer_id).update(
+                {"$inc": {"stats.events_organized": 1}}
+            ),
         )
 
         # Notify organizer

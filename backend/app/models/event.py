@@ -30,4 +30,6 @@ class Event(Document):
             pymongo.IndexModel([("location", pymongo.GEOSPHERE)]),
             pymongo.IndexModel([("status", pymongo.ASCENDING)]),
             pymongo.IndexModel([("organizer_id", pymongo.ASCENDING)]),
+            pymongo.IndexModel([("attendee_ids", pymongo.ASCENDING)]),
+            pymongo.IndexModel([("date_time", pymongo.ASCENDING)]),
         ]
