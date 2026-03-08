@@ -1,31 +1,23 @@
 services:
-  mongodb:
-    image: mongo:7
-    volumes:
-      - mongo_data:/data/db
-    environment:
-      - MONGO_INITDB_DATABASE=reviv
-
   backend:
     build: ./backend
     environment:
-      - MONGODB_URL=mongodb://mongodb:27017
+      - MONGODB_URL=${MONGODB_URL}
       - DATABASE_NAME=reviv
       - SECRET_KEY=${SECRET_KEY}
       - UPLOAD_DIR=/app/uploads
       - CORS_ORIGINS=["http://localhost"]
     volumes:
       - uploads:/app/uploads
-    depends_on:
-      - mongodb
 
   frontend:
     build: ./frontend
     ports:
       - "80:80"
+    environment:
+      - BACKEND_URL=http://backend:8000
     depends_on:
       - backend
 
 volumes:
-  mongo_data:
   uploads:
