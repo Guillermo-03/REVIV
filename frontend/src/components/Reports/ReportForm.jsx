@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -5,31 +6,34 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { createReport } from '../../api/reports'
 import { Spinner } from '../UI/Spinner'
+import { LocationPicker } from '../UI/LocationPicker'
 
 const schema = z.object({
-  location_label: z.string().min(2, 'Location label required'),
-  lat: z.coerce.number(),
-  lng: z.coerce.number(),
   severity: z.enum(['low', 'medium', 'high']),
   category: z.enum(['roadside', 'park', 'waterway', 'construction', 'illegal_dump']),
   description: z.string().optional(),
 })
 
-export function ReportForm({ defaultLat, defaultLng, onSuccess }) {
+export function ReportForm({ defaultLat, defaultLng, defaultLocationLabel, onSuccess }) {
   const queryClient = useQueryClient()
+  const [location, setLocation] = useState(
+    defaultLat && defaultLng
+      ? { lat: defaultLat, lng: defaultLng, label: defaultLocationLabel || '' }
+      : null,
+  )
+  const [locationError, setLocationError] = useState(false)
+
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: {
-      lat: defaultLat || '',
-      lng: defaultLng || '',
-      severity: 'medium',
-      category: 'roadside',
-    },
+    defaultValues: { severity: 'medium', category: 'roadside' },
   })
 
   const { mutate, isPending } = useMutation({
     mutationFn: (data) => {
       const fd = new FormData()
+      fd.append('lat', location.lat)
+      fd.append('lng', location.lng)
+      fd.append('location_label', location.label)
       Object.entries(data).forEach(([k, v]) => { if (v !== undefined && v !== '') fd.append(k, v) })
       if (data.photos) {
         Array.from(data.photos).forEach((f) => fd.append('photos', f))
@@ -44,27 +48,24 @@ export function ReportForm({ defaultLat, defaultLng, onSuccess }) {
     onError: (err) => toast.error(err.response?.data?.detail || 'Failed to submit report'),
   })
 
-  const onSubmit = (data) => mutate(data)
+  const onSubmit = (data) => {
+    if (!location) { setLocationError(true); return }
+    setLocationError(false)
+    mutate(data)
+  }
 
   const inputCls = 'w-full bg-brand-blue/60 border border-brand-sky/40 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-brand-teal text-sm'
   const labelCls = 'block text-sm font-medium text-gray-300 mb-1'
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className={labelCls}>Latitude</label>
-          <input {...register('lat')} className={inputCls} placeholder="0.000" />
-        </div>
-        <div>
-          <label className={labelCls}>Longitude</label>
-          <input {...register('lng')} className={inputCls} placeholder="0.000" />
-        </div>
-      </div>
       <div>
-        <label className={labelCls}>Location Label</label>
-        <input {...register('location_label')} className={inputCls} placeholder="e.g. Central Park, NY" />
-        {errors.location_label && <p className="text-red-400 text-xs mt-1">{errors.location_label.message}</p>}
+        <label className={labelCls}>Location</label>
+        <LocationPicker
+          onChange={(loc) => { setLocation(loc); setLocationError(false) }}
+          defaultLabel={defaultLocationLabel || ''}
+        />
+        {locationError && <p className="text-red-400 text-xs mt-1">Please select a location first</p>}
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>

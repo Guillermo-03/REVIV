@@ -1,5 +1,10 @@
 import client from './client'
 
+export async function fetchAllEvents() {
+  const res = await client.get('/events/all')
+  return res.data
+}
+
 export async function fetchEvents({ lat, lng, radius_km = 50, date_from, date_to, status } = {}) {
   const params = {}
   if (lat != null) params.lat = lat
@@ -13,7 +18,7 @@ export async function fetchEvents({ lat, lng, radius_km = 50, date_from, date_to
 }
 
 export async function createEvent(data) {
-  const res = await client.post('/events', data)
+  const res = await client.post('/events', null, { params: data })
   return res.data
 }
 

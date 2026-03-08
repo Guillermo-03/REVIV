@@ -10,6 +10,11 @@ from app.services import event_service
 router = APIRouter(prefix="/events", tags=["events"])
 
 
+@router.get("/all", response_model=List[EventResponse])
+async def list_all_events():
+    return await event_service.get_all_visible_events()
+
+
 @router.get("", response_model=List[EventResponse])
 async def list_events(
     lat: float,

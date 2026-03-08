@@ -3,7 +3,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link } from 'react-router-dom'
 import { useRegister } from '../../hooks/useAuth'
-import { Spinner } from '../UI/Spinner'
 
 const schema = z
   .object({
@@ -17,65 +16,123 @@ const schema = z
     path: ['confirm_password'],
   })
 
+const HELVETICA = "'Helvetica Neue', Helvetica, Arial, sans-serif"
+
+const inputCls = "w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-400 focus:border-transparent focus:scale-[1.01] transition-all duration-200 outline-none"
+
 export function RegisterForm() {
   const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(schema) })
-  const { mutate, isPending } = useRegister()
+  const { mutate, isPending, error } = useRegister()
+  const serverError = error?.response?.data?.detail || (error ? 'Registration failed. Please try again.' : null)
 
   const onSubmit = ({ confirm_password, ...data }) => mutate(data)
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Display Name</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-1.5" style={{ fontFamily: HELVETICA }}>
+          Display Name
+        </label>
         <input
           {...register('display_name')}
-          className="w-full bg-brand-blue/60 border border-brand-sky/40 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-brand-teal"
+          className={inputCls}
+          style={{ fontFamily: HELVETICA }}
           placeholder="Your name"
         />
-        {errors.display_name && <p className="text-red-400 text-xs mt-1">{errors.display_name.message}</p>}
+        {errors.display_name && (
+          <p className="text-red-500 text-xs mt-1.5 pl-1" style={{ fontFamily: HELVETICA }}>
+            {errors.display_name.message}
+          </p>
+        )}
       </div>
+
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-1.5" style={{ fontFamily: HELVETICA }}>
+          Email
+        </label>
         <input
           {...register('email')}
           type="email"
-          className="w-full bg-brand-blue/60 border border-brand-sky/40 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-brand-teal"
+          className={inputCls}
+          style={{ fontFamily: HELVETICA }}
           placeholder="you@example.com"
         />
-        {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
+        {errors.email && (
+          <p className="text-red-500 text-xs mt-1.5 pl-1" style={{ fontFamily: HELVETICA }}>
+            {errors.email.message}
+          </p>
+        )}
       </div>
+
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Password</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-1.5" style={{ fontFamily: HELVETICA }}>
+          Password
+        </label>
         <input
           {...register('password')}
           type="password"
-          className="w-full bg-brand-blue/60 border border-brand-sky/40 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-brand-teal"
+          className={inputCls}
+          style={{ fontFamily: HELVETICA }}
           placeholder="••••••••"
         />
-        {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
+        {errors.password && (
+          <p className="text-red-500 text-xs mt-1.5 pl-1" style={{ fontFamily: HELVETICA }}>
+            {errors.password.message}
+          </p>
+        )}
       </div>
+
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-1.5" style={{ fontFamily: HELVETICA }}>
+          Confirm Password
+        </label>
         <input
           {...register('confirm_password')}
           type="password"
-          className="w-full bg-brand-blue/60 border border-brand-sky/40 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-brand-teal"
+          className={inputCls}
+          style={{ fontFamily: HELVETICA }}
           placeholder="••••••••"
         />
-        {errors.confirm_password && <p className="text-red-400 text-xs mt-1">{errors.confirm_password.message}</p>}
+        {errors.confirm_password && (
+          <p className="text-red-500 text-xs mt-1.5 pl-1" style={{ fontFamily: HELVETICA }}>
+            {errors.confirm_password.message}
+          </p>
+        )}
       </div>
+
+      {serverError && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600" style={{ fontFamily: HELVETICA }}>
+          {serverError}
+        </div>
+      )}
+
       <button
         type="submit"
         disabled={isPending}
-        className="w-full bg-brand-teal hover:bg-brand-green text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+        className="w-full bg-gradient-to-b from-emerald-400 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-white font-semibold shadow-lg shadow-emerald-500/20 transition rounded-lg py-2.5 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+        style={{ fontFamily: HELVETICA }}
       >
-        {isPending && <Spinner size="sm" />}
-        Create Account
+        {isPending ? (
+          <>
+            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Creating account...
+          </>
+        ) : (
+          'Create Account'
+        )}
       </button>
-      <p className="text-center text-sm text-gray-400">
-        Already have an account?{' '}
-        <Link to="/login" className="text-brand-teal hover:underline">Sign in</Link>
-      </p>
+
+      <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+        <p className="text-sm text-gray-500" style={{ fontFamily: HELVETICA }}>
+          Already have an account?{' '}
+          <Link to="/login" className="text-emerald-500 hover:text-emerald-600 font-medium transition" style={{ fontFamily: HELVETICA }}>
+            Sign in
+          </Link>
+        </p>
+      </div>
     </form>
   )
 }

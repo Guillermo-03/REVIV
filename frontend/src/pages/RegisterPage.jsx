@@ -1,19 +1,41 @@
 import { RegisterForm } from '../components/Auth/RegisterForm'
 
+const HELVETICA = "'Helvetica Neue', Helvetica, Arial, sans-serif"
+
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen bg-brand-blue flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">
-            <span className="text-brand-teal">RE</span>VIV
-          </h1>
-          <p className="text-gray-400 mt-2">Join the cleanup movement</p>
-        </div>
-        <div className="bg-brand-blue/60 border border-brand-sky/30 rounded-2xl p-6 backdrop-blur-md">
-          <h2 className="text-white font-semibold text-lg mb-4">Create Account</h2>
-          <RegisterForm />
-        </div>
+    <div
+      style={{ background: 'radial-gradient(ellipse at center, #2d2d2d 0%, #111111 100%)', minHeight: '100vh' }}
+      className="relative flex flex-col items-center px-4 pt-10 pb-10"
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.15),transparent_60%)] pointer-events-none" />
+
+      {/* Logo */}
+      <div style={{
+        width: 'clamp(240px, 36vw, 440px)',
+        height: '26vh',
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        flexShrink: 0,
+      }}>
+        <img
+          src="/REVIV.svg"
+          alt="REVIV"
+          className="drop-shadow-lg"
+          style={{ width: '100%', height: 'auto', display: 'block' }}
+        />
+      </div>
+
+      {/* Card */}
+      <div className="relative w-full max-w-sm bg-white/95 backdrop-blur-md shadow-2xl border border-white/20 rounded-2xl p-10" style={{ marginTop: '16px' }}>
+        <h2
+          className="text-center text-xl font-bold mb-6 text-gray-900"
+          style={{ fontFamily: HELVETICA }}
+        >
+          Create Account
+        </h2>
+        <RegisterForm />
       </div>
     </div>
   )

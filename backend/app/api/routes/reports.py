@@ -43,6 +43,15 @@ async def create_report(
     )
 
 
+@router.get("/heatmap")
+async def get_heatmap(
+    lat: float,
+    lng: float,
+    radius_km: float = 100,
+):
+    return await report_service.get_heatmap_points(lat, lng, radius_km)
+
+
 @router.get("/{report_id}", response_model=ReportResponse)
 async def get_report(report_id: str):
     return await report_service.get_report_by_id(report_id)

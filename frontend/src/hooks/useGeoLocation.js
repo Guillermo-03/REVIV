@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react'
 
-const FALLBACK = { lat: 20, lng: 0 }
-
 export function useGeoLocation() {
   const [location, setLocation] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setLocation(FALLBACK)
       setLoading(false)
       return
     }
@@ -18,7 +15,7 @@ export function useGeoLocation() {
         setLoading(false)
       },
       () => {
-        setLocation(FALLBACK)
+        // Failed — leave location as null so the map stays at world view
         setLoading(false)
       },
       { timeout: 5000 },

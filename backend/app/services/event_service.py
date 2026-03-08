@@ -36,6 +36,27 @@ def event_to_response(event: Event, organizer: Optional[User] = None, attendees:
     )
 
 
+async def get_all_visible_events(limit: int = 200) -> List[EventResponse]:
+    """
+    Returns all events currently visible on the map:
+    - open / in_progress / full  → always included
+    - completed / resolved       → included only if completed within the last 24 h
+      (mirrors the 24-h fade-out window enforced on the globe)
+    """
+    cutoff = datetime.utcnow() - __import__('datetime').timedelta(hours=24)
+    query = {
+        "$or": [
+            {"status": {"$in": ["open", "in_progress", "full"]}},
+            {
+                "status": {"$in": ["completed", "resolved"]},
+                "completed_at": {"$gte": cutoff},
+            },
+        ]
+    }
+    events = await Event.find(query).sort(Event.date_time).limit(limit).to_list()
+    return [event_to_response(e) for e in events]
+
+
 async def create_event(
     organizer: User,
     name: str,
